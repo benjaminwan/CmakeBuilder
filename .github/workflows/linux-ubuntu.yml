@@ -1,0 +1,113 @@
+name: linux
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os_name: [ubuntu]
+        list:
+          - { os_ver: 16.04, libc: glibc2.23 }
+          - { os_ver: 18.04, libc: glibc2.27 }
+          - { os_ver: 20.04, libc: glibc2.31 }
+          - { os_ver: 22.04, libc: glibc2.35 }
+        arch:
+          [
+            amd64,
+            arm,
+            arm64,
+            ppc64le,
+            s390x,
+          ]
+
+
+    name: ${{ matrix.os_name }}-${{ matrix.list.os_ver }}-${{ matrix.arch }}
+
+    env:
+      CMAKE_VERSION: 3.28.1
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: download source
+        run: |
+          wget https://github.com/Kitware/CMake/releases/download/v${{ env.CMAKE_VERSION }}/cmake-${{ env.CMAKE_VERSION }}.tar.gz -O cmake-${{ env.CMAKE_VERSION }}.tar.gz
+          tar -xf cmake-${{ env.CMAKE_VERSION }}.tar.gz
+          mv cmake-${{ env.CMAKE_VERSION }} cmake-${{ env.CMAKE_VERSION }}-source
+
+      - name: Host - update
+        run: sudo apt-get update
+
+      - name: Host - Install host qemu-static
+        run: sudo apt-get install -y qemu binfmt-support qemu-user-static
+
+      - name: Host - Docker multiarch bootstrap
+        run: sudo docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - name: Host - Create docker container
+        run: docker run --name ${{ matrix.os_name }} --platform linux/${{ matrix.arch }} -it -d -w /root -v ${{ github.workspace }}:/root ${{ matrix.os_name }}:${{ matrix.list.os_ver }}
+
+      - name: Docker - apt-get update
+        run: docker exec -w /root ${{ matrix.os_name }} apt-get update
+
+      - name: Docker - apk install build deps
+        run: docker exec -w /root ${{ matrix.os_name }} apt-get install -y build-essential libssl-dev zlib1g-dev
+
+      - name: Docker - configure
+        run: docker exec -w /root/cmake-${{ env.CMAKE_VERSION }}-source ${{ matrix.os_name }} ./bootstrap --prefix=/root/cmake-${{ env.CMAKE_VERSION }}
+
+      - name: Docker - build
+        run: docker exec -w /root/cmake-${{ env.CMAKE_VERSION }}-source ${{ matrix.os_name }} make -j"$(nproc)" install
+
+      # 7z压缩
+      - name: Host - 7zip
+        run: 7z a cmake-${{ env.CMAKE_VERSION }}-${{ matrix.list.libc }}-${{ matrix.arch }}.7z cmake-${{ env.CMAKE_VERSION }}
+
+      # 上传artifact
+      - name: upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: cmake-${{ env.CMAKE_VERSION }}-${{ matrix.list.libc }}-${{ matrix.arch }}
+          path: cmake-${{ env.CMAKE_VERSION }}-${{ matrix.list.libc }}-${{ matrix.arch }}.7z
+
+      # 获取所有的git log和tag
+      - name: Unshallow
+        run: git fetch --prune --unshallow
+
+      # 获取git log 从 previousTag 到 lastTag
+      - name: Get git log
+        id: git-log
+        run: |
+          previousTag=$(git describe --abbrev=0 --tags `git rev-list --tags --skip=1 --max-count=1`)
+          lastTag=$(git describe --abbrev=0 --tags)
+          echo "previousTag:$previousTag ~ lastTag:$lastTag"
+          log=$(git log $previousTag..$lastTag --pretty=format:'- %cd %an: %s\n' --date=format:'%Y-%m-%d %H:%M:%S')
+          echo "$log"
+          echo "log_state="$log"" >> $GITHUB_ENV
+
+      # 创建Changelog文件 triggered by git tag push
+      - name: Generate Changelog
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo -e '${{ env.log_state }}' > release.md
+
+      # 创建release 上传release
+      # https://github.com/marketplace/actions/create-release
+      - name: Create release and upload-archive
+        uses: ncipollo/release-action@v1
+        with:
+          prerelease: false
+          name: cmake ${{ github.ref }}
+          bodyFile: release.md
+          artifacts: cmake-${{ env.CMAKE_VERSION }}-${{ matrix.list.libc }}-${{ matrix.arch }}.7z
+          allowUpdates: true
+          artifactContentType: application/x-7z-compressed
+          token: ${{ secrets.GITHUB_TOKEN }}
