@@ -15,6 +15,7 @@ jobs:
       matrix:
         os_name: [ubuntu]
         list:
+          - { os_ver: 14.04, libc: glibc2.19 }
           - { os_ver: 16.04, libc: glibc2.23 }
           - { os_ver: 18.04, libc: glibc2.27 }
           - { os_ver: 20.04, libc: glibc2.31 }
