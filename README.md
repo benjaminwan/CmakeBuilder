@@ -22,8 +22,6 @@ build cmake for Linux
 | ubuntu 20.04 | 9.4.0  | 2.31   | 2.34       |
 | ubuntu 22.04 | 11.4.0 | 2.35   | 2.38       |
 
-- 备注：ubuntu 14.04因gcc版本太老，不支持参数-std=gnu++14，故无法编译cmake新版
-
 ### 操作系统与编译依赖库版本(Alpine发行版)
 
 | 操作系统         | gcc版本  | musl版本 | binutils版本 | 
