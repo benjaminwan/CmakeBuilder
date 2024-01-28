@@ -14,12 +14,14 @@ jobs:
       fail-fast: false
       matrix:
         os_name: [ubuntu]
-        list:
-          - { os_ver: 14.04, libc: glibc2.19 }
-          - { os_ver: 16.04, libc: glibc2.23 }
-          - { os_ver: 18.04, libc: glibc2.27 }
-          - { os_ver: 20.04, libc: glibc2.31 }
-          - { os_ver: 22.04, libc: glibc2.35 }
+        os_ver:
+          [
+          14.04,
+          16.04,
+          18.04,
+          20.04,
+          22.04,
+          ]
         arch:
           [
             amd64,
@@ -30,7 +32,7 @@ jobs:
           ]
 
 
-    name: ${{ matrix.os_name }}-${{ matrix.list.os_ver }}-${{ matrix.arch }}
+    name: ${{ matrix.os_name }}-${{ matrix.os_ver }}-${{ matrix.arch }}
 
     env:
       CMAKE_VERSION: 3.28.1
@@ -54,7 +56,7 @@ jobs:
         run: sudo docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
       - name: Host - Create docker container
-        run: docker run --name ${{ matrix.os_name }} --platform linux/${{ matrix.arch }} -it -d -w /root -v ${{ github.workspace }}:/root ${{ matrix.os_name }}:${{ matrix.list.os_ver }}
+        run: docker run --name ${{ matrix.os_name }} --platform linux/${{ matrix.arch }} -it -d -w /root -v ${{ github.workspace }}:/root ${{ matrix.os_name }}:${{ matrix.os_ver }}
 
       - name: Docker - apt-get update
         run: docker exec -w /root ${{ matrix.os_name }} apt-get update
@@ -70,14 +72,14 @@ jobs:
 
       # 7z压缩
       - name: Host - 7zip
-        run: 7z a cmake-${{ env.CMAKE_VERSION }}-${{ matrix.list.libc }}-${{ matrix.arch }}.7z cmake-${{ env.CMAKE_VERSION }}
+        run: 7z a cmake-${{ env.CMAKE_VERSION }}-${{ matrix.os_name }}-${{ matrix.os_ver }}-${{ matrix.arch }}.7z cmake-${{ env.CMAKE_VERSION }}
 
       # 上传artifact
       - name: upload
         uses: actions/upload-artifact@v3
         with:
-          name: cmake-${{ env.CMAKE_VERSION }}-${{ matrix.list.libc }}-${{ matrix.arch }}
-          path: cmake-${{ env.CMAKE_VERSION }}-${{ matrix.list.libc }}-${{ matrix.arch }}.7z
+          name: cmake-${{ env.CMAKE_VERSION }}-${{ matrix.os_name }}-${{ matrix.os_ver }}-${{ matrix.arch }}
+          path: cmake-${{ env.CMAKE_VERSION }}-${{ matrix.os_name }}-${{ matrix.os_ver }}-${{ matrix.arch }}.7z
 
       # 获取所有的git log和tag
       - name: Unshallow
@@ -108,7 +110,7 @@ jobs:
           prerelease: false
           name: cmake ${{ github.ref }}
           bodyFile: release.md
-          artifacts: cmake-${{ env.CMAKE_VERSION }}-${{ matrix.list.libc }}-${{ matrix.arch }}.7z
+          artifacts: cmake-${{ env.CMAKE_VERSION }}-${{ matrix.os_name }}-${{ matrix.os_ver }}-${{ matrix.arch }}.7z
           allowUpdates: true
           artifactContentType: application/x-7z-compressed
           token: ${{ secrets.GITHUB_TOKEN }}
