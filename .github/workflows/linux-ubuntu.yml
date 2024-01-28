@@ -1,4 +1,4 @@
-name: linux
+name: ubuntu
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - '*'
 
 jobs:
-  ubuntu:
+  build:
     runs-on: ubuntu-latest
 
     strategy:
