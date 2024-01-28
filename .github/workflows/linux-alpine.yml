@@ -15,10 +15,10 @@ jobs:
       matrix:
         os_name: [alpine]
         list:
-          - { os_ver: v3.7, libc: musl1.1.18 }
-          - { os_ver: v3.9, libc: musl1.1.20 }
-          - { os_ver: v3.11, libc: musl1.1.24 }
-          - { os_ver: v3.13, libc: musl1.2.2 }
+          - { os_ver: 3.7, libc: musl1.1.18 }
+          - { os_ver: 3.9, libc: musl1.1.20 }
+          - { os_ver: 3.11, libc: musl1.1.24 }
+          - { os_ver: 3.13, libc: musl1.2.2 }
         arch:
           [
             amd64,
