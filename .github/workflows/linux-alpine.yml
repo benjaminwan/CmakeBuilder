@@ -7,7 +7,7 @@ on:
       - '*'
 
 jobs:
-  linux:
+  alpine:
     runs-on: ubuntu-latest
 
     strategy:

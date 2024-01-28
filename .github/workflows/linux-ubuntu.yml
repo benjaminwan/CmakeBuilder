@@ -7,7 +7,7 @@ on:
       - '*'
 
 jobs:
-  linux:
+  ubuntu:
     runs-on: ubuntu-latest
 
     strategy:
