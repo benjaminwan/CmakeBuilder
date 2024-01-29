@@ -42,7 +42,7 @@ build cmake for Linux
 2. 例如CPU架构是x86_64则选择文件名含amd64或x86_64的包；
 3. 大部分Linux发行版都是使用gnu工具链构建，其中例外的是alpine，它使用musl工具链构建；
 4. gun工具链使用glibc，而musl工具链使用musl libc；
-5. alpine发行版选择含musl的包，除此之外的大部分发行版选择含glibc的包；
+5. alpine发行版选择alpine包，除此之外的大部分发行版选择ubuntu包；
 6. 使用命令```gcc -v```查看自己系统gcc版本
 7. 使用命令```ldd --version```查看自己系统libc版本
 8. 使用命令```ld -v```查看自己系统binutils版本
