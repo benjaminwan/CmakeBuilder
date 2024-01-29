@@ -19,7 +19,6 @@ jobs:
             3.7,
             3.9,
             3.11,
-            3.13,
           ]
         arch:
           [
@@ -64,7 +63,7 @@ jobs:
         run: docker exec -w /root ${{ matrix.os_name }} apk add build-base linux-headers zlib-dev openssl-dev
 
       - name: Docker - configure
-        run: docker exec -w /root/cmake-${{ env.CMAKE_VERSION }}-source ${{ matrix.os_name }} ./bootstrap --prefix=/root/cmake-${{ env.CMAKE_VERSION }}
+        run: docker exec -w /root/cmake-${{ env.CMAKE_VERSION }}-source ${{ matrix.os_name }} ./bootstrap --parallel=$(nproc) --prefix=/root/cmake-${{ env.CMAKE_VERSION }} -- -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc"
 
       - name: Docker - build
         run: docker exec -w /root/cmake-${{ env.CMAKE_VERSION }}-source ${{ matrix.os_name }} make -j"$(nproc)" install

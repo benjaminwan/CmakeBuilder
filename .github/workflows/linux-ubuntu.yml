@@ -20,7 +20,6 @@ jobs:
           16.04,
           18.04,
           20.04,
-          22.04,
           ]
         arch:
           [
@@ -65,7 +64,7 @@ jobs:
         run: docker exec -w /root ${{ matrix.os_name }} apt-get install -y build-essential libssl-dev zlib1g-dev
 
       - name: Docker - configure
-        run: docker exec -w /root/cmake-${{ env.CMAKE_VERSION }}-source ${{ matrix.os_name }} ./bootstrap --prefix=/root/cmake-${{ env.CMAKE_VERSION }}
+        run: docker exec -w /root/cmake-${{ env.CMAKE_VERSION }}-source ${{ matrix.os_name }} ./bootstrap --parallel="$(nproc)" --prefix=/root/cmake-${{ env.CMAKE_VERSION }} -- -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc" -DOPENSSL_USE_STATIC_LIBS=TRUE
 
       - name: Docker - build
         run: docker exec -w /root/cmake-${{ env.CMAKE_VERSION }}-source ${{ matrix.os_name }} make -j"$(nproc)" install
