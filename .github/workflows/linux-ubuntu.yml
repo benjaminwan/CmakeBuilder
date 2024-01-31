@@ -14,24 +14,21 @@ jobs:
       fail-fast: false
       matrix:
         os_name: [ubuntu]
-        os_ver:
-          [
-          14.04,
-          16.04,
-          18.04,
-          20.04,
-          ]
+        list:
+          - { os_ver: 14.04, os_id: trusty }
+          - { os_ver: 16.04, os_id: xenial }
+          - { os_ver: 18.04, os_id: bionic }
+          - { os_ver: 20.04, os_id: focal }
         arch:
           [
             amd64,
             arm,
             arm64,
             ppc64le,
-            s390x,
           ]
 
 
-    name: ${{ matrix.os_name }}-${{ matrix.os_ver }}-${{ matrix.arch }}
+    name: ${{ matrix.os_name }}-${{ matrix.list.os_ver }}-${{ matrix.arch }}
 
     env:
       CMAKE_VERSION: 3.28.1
@@ -54,31 +51,37 @@ jobs:
       - name: Host - Docker multiarch bootstrap
         run: sudo docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
+      - name: Host - Create Docker template env file
+        run: |
+          echo "PATH=/root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" > env.custom
+          echo "DEBIAN_FRONTEND=noninteractive" >> env.custom
+          echo "TZ=Etc/UTC" >> env.custom
+
       - name: Host - Create docker container
-        run: docker run --name ${{ matrix.os_name }} --platform linux/${{ matrix.arch }} -it -d -w /root -v ${{ github.workspace }}:/root ${{ matrix.os_name }}:${{ matrix.os_ver }}
+        run: docker run --name ${{ matrix.os_name }} --env-file env.custom --platform linux/${{ matrix.arch }} -it -d -w /root -v ${{ github.workspace }}:/root ${{ matrix.os_name }}:${{ matrix.list.os_id }}
 
       - name: Docker - apt-get update
-        run: docker exec -w /root ${{ matrix.os_name }} apt-get update
+        run: docker exec --env-file env.custom -w /root ${{ matrix.os_name }} apt-get update
 
       - name: Docker - apk install build deps
-        run: docker exec -w /root ${{ matrix.os_name }} apt-get install -y build-essential libssl-dev zlib1g-dev
+        run: docker exec --env-file env.custom -w /root ${{ matrix.os_name }} apt-get install -y build-essential libssl-dev zlib1g-dev
 
       - name: Docker - configure
-        run: docker exec -w /root/cmake-${{ env.CMAKE_VERSION }}-source ${{ matrix.os_name }} ./bootstrap --parallel="$(nproc)" --prefix=/root/cmake-${{ env.CMAKE_VERSION }} -- -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc" -DOPENSSL_USE_STATIC_LIBS=TRUE
+        run: docker exec --env-file env.custom -w /root/cmake-${{ env.CMAKE_VERSION }}-source ${{ matrix.os_name }} ./bootstrap --parallel="$(nproc)" --prefix=/root/cmake-${{ env.CMAKE_VERSION }} -- -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc" -DOPENSSL_USE_STATIC_LIBS=TRUE
 
       - name: Docker - build
-        run: docker exec -w /root/cmake-${{ env.CMAKE_VERSION }}-source ${{ matrix.os_name }} make -j"$(nproc)" install
+        run: docker exec --env-file env.custom -w /root/cmake-${{ env.CMAKE_VERSION }}-source ${{ matrix.os_name }} make -j"$(nproc)" install
 
       # 7z压缩
       - name: Host - 7zip
-        run: 7z a cmake-${{ env.CMAKE_VERSION }}-${{ matrix.os_name }}-${{ matrix.os_ver }}-${{ matrix.arch }}.7z cmake-${{ env.CMAKE_VERSION }}
+        run: 7z a cmake-${{ env.CMAKE_VERSION }}-${{ matrix.os_name }}-${{ matrix.list.os_ver }}-${{ matrix.arch }}.7z cmake-${{ env.CMAKE_VERSION }}
 
       # 上传artifact
       - name: upload
         uses: actions/upload-artifact@v3
         with:
-          name: cmake-${{ env.CMAKE_VERSION }}-${{ matrix.os_name }}-${{ matrix.os_ver }}-${{ matrix.arch }}
-          path: cmake-${{ env.CMAKE_VERSION }}-${{ matrix.os_name }}-${{ matrix.os_ver }}-${{ matrix.arch }}.7z
+          name: cmake-${{ env.CMAKE_VERSION }}-${{ matrix.os_name }}-${{ matrix.list.os_ver }}-${{ matrix.arch }}
+          path: cmake-${{ env.CMAKE_VERSION }}-${{ matrix.os_name }}-${{ matrix.list.os_ver }}-${{ matrix.arch }}.7z
 
       # 获取所有的git log和tag
       - name: Unshallow
@@ -108,7 +111,7 @@ jobs:
         with:
           prerelease: false
           bodyFile: release.md
-          artifacts: cmake-${{ env.CMAKE_VERSION }}-${{ matrix.os_name }}-${{ matrix.os_ver }}-${{ matrix.arch }}.7z
+          artifacts: cmake-${{ env.CMAKE_VERSION }}-${{ matrix.os_name }}-${{ matrix.list.os_ver }}-${{ matrix.arch }}.7z
           allowUpdates: true
           artifactContentType: application/x-7z-compressed
           token: ${{ secrets.GITHUB_TOKEN }}
