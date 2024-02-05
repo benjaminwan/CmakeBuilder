@@ -19,6 +19,7 @@ jobs:
           - { os_ver: 16.04, os_id: xenial }
           - { os_ver: 18.04, os_id: bionic }
           - { os_ver: 20.04, os_id: focal }
+          - { os_ver: 22.04, os_id: jammy }
         arch:
           [
             amd64,
