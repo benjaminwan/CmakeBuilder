@@ -6,6 +6,7 @@ build cmake for Linux
 
 | CPU架构   | 备注               |
 |---------|------------------|
+| 386     | 32位PC            |
 | amd64   | x86_64 一般家用PC    |
 | arm     | arm/v7 armhf     |
 | arm64   | arm64/v8 aarch64 |
